@@ -16,6 +16,7 @@ import {
   Trash2,
   X,
   ListChecks,
+  Sparkles,
 } from "lucide-react";
 
 import type { PartOfSpeech, Word, WordStatus } from "@/lib/types";
@@ -47,6 +48,7 @@ import { StatusBadge } from "@/components/shared/badges";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WordFormDialog } from "./word-form-dialog";
 import { WordDetailSheet } from "./word-detail-sheet";
+import { AiBatchDialog } from "./ai-batch-dialog";
 
 type SortKey = "recent" | "alpha" | "status" | "review";
 
@@ -69,6 +71,7 @@ export function DictionaryView({ onOpenAdd }: { onOpenAdd: () => void }) {
 
   const [selectedWord, setSelectedWord] = useState<Word | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
@@ -220,6 +223,17 @@ export function DictionaryView({ onOpenAdd }: { onOpenAdd: () => void }) {
               <ListChecks className="h-4 w-4" />
               {bulkMode ? "Terminer" : "Sélectionner"}
             </Button>
+            {!bulkMode && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setBatchOpen(true)}
+                aria-label="Ajouter plusieurs mots avec l'IA"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
             {!bulkMode && (
               <Button size="sm" onClick={onOpenAdd}>
                 <Plus className="h-4 w-4" /> Fiche
@@ -552,6 +566,8 @@ export function DictionaryView({ onOpenAdd }: { onOpenAdd: () => void }) {
         )}
         <div className="h-24" />
       </div>
+
+      <AiBatchDialog open={batchOpen} onOpenChange={setBatchOpen} />
 
       <WordDetailSheet
         word={selectedWord}

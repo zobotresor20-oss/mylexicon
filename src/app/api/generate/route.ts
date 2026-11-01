@@ -6,28 +6,11 @@ import { z } from "zod";
 // Variables à définir dans Vercel :
 //   GEMINI_API_KEY  (obligatoire)  clé créée dans Google AI Studio
 //   ACCESS_CODE     (obligatoire)  code secret demandé à l'utilisateur
-//   GEMINI_MODEL    (facultatif)   un ou plusieurs modèles à essayer en premier,
-//                                  séparés par des virgules (ex : "gemini-3-flash-preview")
+//   GEMINI_MODEL    (facultatif)   modèle à utiliser, "gemini-2.5-flash" par défaut
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
-
-// Google retire régulièrement d'anciens modèles (les gemini-2.5-* sont arrêtés).
-// On essaie donc plusieurs modèles dans l'ordre jusqu'à en trouver un qui répond.
-const DEFAULT_MODELS = [
-  "gemini-3-flash-preview",
-  "gemini-flash-latest",
-  "gemini-3.1-flash-lite-preview",
-];
-
-function modelList(): string[] {
-  const custom = (process.env.GEMINI_MODEL ?? "")
-    .split(",")
-    .map((m) => m.trim())
-    .filter(Boolean);
-  return [...custom, ...DEFAULT_MODELS.filter((m) => !custom.includes(m))];
-}
 
 const PARTS = [
   "nom",
@@ -114,7 +97,7 @@ function digest(value: string): Buffer {
 }
 
 function codeIsValid(given: unknown): boolean {
-  const expected = process.env.ACCESS_CODE?.trim();
+  const expected = process.env.ACCESS_CODE;
   if (!expected || typeof given !== "string" || given.length === 0) return false;
   return timingSafeEqual(digest(given), digest(expected));
 }
@@ -140,50 +123,6 @@ function stripFences(text: string): string {
     .trim();
 }
 
-// Appelle un modèle Gemini. Pour les modèles « gemini-3 », on demande peu de
-// réflexion afin de répondre plus vite ; si Google refuse ce réglage, on réessaie sans.
-async function callGemini(
-  model: string,
-  apiKey: string,
-  word: string,
-  lowThinking: boolean
-): Promise<Response> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    model
-  )}:generateContent`;
-  const generationConfig: Record<string, unknown> = {
-    responseMimeType: "application/json",
-  };
-  if (lowThinking) generationConfig.thinkingConfig = { thinkingLevel: "low" };
-  return fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `Mot ou expression à traiter : "${word}"` }],
-        },
-      ],
-      generationConfig,
-    }),
-    signal: AbortSignal.timeout(20000),
-  });
-}
-
-async function errorDetail(res: Response): Promise<string> {
-  try {
-    const j = await res.json();
-    return String(j?.error?.message ?? "").replace(/\s+/g, " ").slice(0, 200);
-  } catch {
-    return "";
-  }
-}
-
 export async function POST(req: NextRequest) {
   let body: { word?: unknown; code?: unknown; action?: unknown };
   try {
@@ -192,17 +131,11 @@ export async function POST(req: NextRequest) {
     return reply(400, "bad-request", "Requête invalide.");
   }
 
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  const accessCode = process.env.ACCESS_CODE?.trim();
-  if (!apiKey || !accessCode) {
-    // On n'indique que le NOM de la variable manquante, jamais sa valeur.
-    const missing = [!apiKey && "GEMINI_API_KEY", !accessCode && "ACCESS_CODE"]
-      .filter(Boolean)
-      .join(" et ");
+  if (!process.env.GEMINI_API_KEY || !process.env.ACCESS_CODE) {
     return reply(
       500,
       "server",
-      `Variable manquante sur le serveur : ${missing}. Vérifiez le nom exact (majuscules, tirets du bas) dans Vercel, puis lancez un nouveau déploiement.`
+      "Le serveur n'est pas configuré : ajoutez GEMINI_API_KEY et ACCESS_CODE dans Vercel, puis redéployez."
     );
   }
 
@@ -233,69 +166,58 @@ export async function POST(req: NextRequest) {
     return reply(400, "bad-request", "Saisissez d'abord un mot en anglais.");
   }
 
-  // On essaie les modèles dans l'ordre jusqu'à obtenir une réponse.
-  const tried: string[] = [];
-  let upstream: Response | null = null;
-  let quotaHit = false;
-  let keyRejected = false;
-  let lastStatus = 0;
-  let lastDetail = "";
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    model
+  )}:generateContent`;
 
-  for (const model of modelList()) {
-    tried.push(model);
-    let res: Response;
-    try {
-      const isGemini3 = model.startsWith("gemini-3");
-      res = await callGemini(model, apiKey, word, isGemini3);
-      if (res.status === 400 && isGemini3) {
-        res = await callGemini(model, apiKey, word, false);
-      }
-    } catch {
-      lastStatus = 0;
-      lastDetail = "délai dépassé";
-      continue;
-    }
-    if (res.ok) {
-      upstream = res;
-      break;
-    }
-    lastStatus = res.status;
-    lastDetail = await errorDetail(res);
-    console.error(`[generate] ${model} -> ${res.status} ${lastDetail}`);
-    if (
-      res.status === 401 ||
-      res.status === 403 ||
-      (res.status === 400 && /api key/i.test(lastDetail))
-    ) {
-      keyRejected = true;
-      break;
-    }
-    if (res.status === 429) quotaHit = true;
-    // 400, 404 (modèle retiré), 429 (quota de ce modèle), 5xx : modèle suivant.
+  let upstream: Response;
+  try {
+    upstream = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": process.env.GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `Mot ou expression à traiter : "${word}"` }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.4,
+          responseMimeType: "application/json",
+        },
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+  } catch {
+    return reply(
+      504,
+      "server",
+      "L'assistant n'a pas répondu à temps. Réessayez dans un instant."
+    );
   }
 
-  if (!upstream) {
-    if (keyRejected) {
-      return reply(
-        502,
-        "server",
-        "Google a refusé la clé GEMINI_API_KEY : vérifiez-la dans Vercel (elle doit venir de Google AI Studio, sans espace), puis redéployez."
-      );
-    }
-    if (quotaHit) {
-      return reply(
-        429,
-        "quota",
-        "Limite gratuite atteinte. Patientez une minute, ou revenez demain si le quota du jour est épuisé."
-      );
-    }
+  if (upstream.status === 429) {
+    return reply(
+      429,
+      "quota",
+      "Limite gratuite atteinte. Patientez une minute, ou revenez demain si le quota du jour est épuisé."
+    );
+  }
+  if (upstream.status === 400 || upstream.status === 401 || upstream.status === 403) {
     return reply(
       502,
       "server",
-      `L'assistant est indisponible (Google a répondu ${lastStatus || "rien"}${
-        lastDetail ? ` : ${lastDetail}` : ""
-      }). Modèles essayés : ${tried.join(", ")}.`
+      "Google a refusé la requête : vérifiez la clé GEMINI_API_KEY (et le nom du modèle) dans Vercel."
     );
+  }
+  if (!upstream.ok) {
+    return reply(502, "server", "L'assistant est indisponible pour le moment.");
   }
 
   let data: any;

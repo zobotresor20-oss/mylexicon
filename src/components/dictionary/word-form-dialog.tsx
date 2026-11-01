@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Sparkles, Loader2 } from "lucide-react";
 import { v4 as uuid } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -15,6 +15,7 @@ import type {
 } from "@/lib/types";
 import { useLexicon, type NewWordInput } from "@/lib/store";
 import { findFalseFriend } from "@/lib/false-friends";
+import { generateEntry, AiError } from "@/lib/ai";
 import {
   Dialog,
   DialogContent,
@@ -110,6 +111,7 @@ export function WordFormDialog({
 
   const [draftCards, setDraftCards] = useState<DraftCard[]>([]);
   const [draftExamples, setDraftExamples] = useState<DraftExample[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Initialise le formulaire à l'ouverture (synchronisation prop -> état local
   // du formulaire). Pattern légitime pour un dialogue réutilisable.
@@ -160,6 +162,58 @@ export function WordFormDialog({
     setTagInput("");
   }, [open, editingWord, cards, examples, prefillWord]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Remplit tout le formulaire à partir de la fiche générée par l'IA.
+  async function handleGenerate() {
+    const w = word.trim();
+    if (!w) {
+      toast.error("Saisissez d'abord le mot en anglais.");
+      return;
+    }
+    if (
+      (translation.trim() || draftCards.length > 0) &&
+      !confirm("Remplacer le contenu actuel du formulaire par la fiche générée ?")
+    )
+      return;
+    setAiLoading(true);
+    try {
+      const entry = await generateEntry(w);
+      setWord(entry.word);
+      setTranslation(entry.translation);
+      setPartOfSpeech(entry.partOfSpeech);
+      setRegister(entry.register);
+      setContext(entry.context);
+      setNotes(entry.notes);
+      setTags(Array.from(new Set([...entry.tags, "ia"])));
+      const cardsOut: DraftCard[] = [];
+      const examplesOut: DraftExample[] = [];
+      const groups = [
+        ["chunk", entry.chunks],
+        ["collocation", entry.collocations],
+        ["expression", entry.expressions],
+      ] as const;
+      for (const [type, list] of groups) {
+        for (const el of list) {
+          const id = uuid();
+          cardsOut.push({ id, type, content: el.content, translation: el.translation, isNew: true });
+          examplesOut.push({
+            id: uuid(),
+            parentId: id,
+            content: el.example.content,
+            translation: el.example.translation,
+            isNew: true,
+          });
+        }
+      }
+      setDraftCards(cardsOut);
+      setDraftExamples(examplesOut);
+      toast.success("Fiche préparée : vérifiez-la, corrigez si besoin, puis enregistrez.");
+    } catch (err) {
+      toast.error(err instanceof AiError ? err.message : "La génération a échoué. Réessayez.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   function addTag() {
     const t = tagInput.trim().toLowerCase();
@@ -303,7 +357,7 @@ export function WordFormDialog({
     // Gère les exemples rattachés au mot (parentId === wordId).
     for (const e of draftExamples) {
       if (!e.content.trim()) continue;
-      if (e.parentId !== wordId) continue; // traités avec leur carte
+      if (e.parentId !== wordId && e.parentId !== "new-word") continue; // les autres sont traités avec leur carte
       if (e.isNew) {
         addExample({
           wordId,
@@ -361,6 +415,26 @@ export function WordFormDialog({
                 />
                 {word.trim() && <SpeakButton text={word} />}
               </div>
+              {!editingWord && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-9 border-primary/40 text-primary"
+                  onClick={handleGenerate}
+                  disabled={aiLoading || !word.trim()}
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Préparation de la fiche…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" /> Remplir la fiche avec l'IA
+                    </>
+                  )}
+                </Button>
+              )}
               {word.trim() && findFalseFriend(word) && (
                 <div className="rounded-md border border-amber-400/60 bg-amber-50 dark:bg-amber-950/40 p-2 text-xs space-y-1">
                   <p className="font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-1">

@@ -11,7 +11,7 @@ export type PartOfSpeech =
   | "adverbe"
   | "préposition"
   | "conjonction"
-  | "pronoun"
+  | "pronom"
   | "déterminant"
   | "interjection"
   | "expression"

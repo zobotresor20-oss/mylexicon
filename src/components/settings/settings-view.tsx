@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Settings as SettingsIcon,
   Palette,
@@ -27,6 +27,7 @@ import { buildDemoBackup } from "@/lib/demo-data";
 import { exportCsv, downloadFile } from "@/lib/export";
 import { parseCsv, exportAnkiCloze } from "@/lib/csv-import-export";
 import { speak } from "@/lib/speech";
+import { AiError, checkAccessCode, getAccessCode, setAccessCode } from "@/lib/ai";
 import type { Accent, BackupData } from "@/lib/types";
 import { Card as UICard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,30 @@ export function SettingsView() {
   const [restoreMode, setRestoreMode] = useState<"replace" | "merge">("merge");
   const [exportStatusFilter, setExportStatusFilter] = useState<string>("all");
   const [exportTagFilter, setExportTagFilter] = useState<string>("all");
+  const [aiCode, setAiCode] = useState("");
+  const [aiChecking, setAiChecking] = useState(false);
+
+  useEffect(() => {
+    setAiCode(getAccessCode());
+  }, []);
+
+  async function handleSaveAiCode() {
+    const code = aiCode.trim();
+    setAccessCode(code);
+    if (!code) {
+      toast.info("Code supprimé de cet appareil.");
+      return;
+    }
+    setAiChecking(true);
+    try {
+      await checkAccessCode(code);
+      toast.success("Code valide : l'assistant IA est prêt.");
+    } catch (err) {
+      toast.error(err instanceof AiError ? err.message : "Vérification impossible.");
+    } finally {
+      setAiChecking(false);
+    }
+  }
 
   // Mots filtrés selon les filtres d'export.
   const filteredWordsForExport = useMemo(() => {
@@ -421,6 +446,38 @@ export function SettingsView() {
           </p>
         </Section>
 
+        {/* Assistant IA */}
+        <Section title="Assistant IA" icon={Sparkles}>
+          <p className="text-xs text-muted-foreground px-1">
+            L'assistant prépare les fiches à votre place : vous tapez un mot, vous
+            vérifiez, vous enregistrez. Saisissez le code d'accès défini dans Vercel
+            (variable ACCESS_CODE).
+          </p>
+          <Row label="Code d'accès">
+            <Input
+              type="password"
+              autoComplete="off"
+              value={aiCode}
+              onChange={(e) => setAiCode(e.target.value)}
+              className="w-44 h-9"
+            />
+          </Row>
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={handleSaveAiCode}
+            disabled={aiChecking}
+          >
+            <Sparkles className="h-4 w-4" />{" "}
+            {aiChecking ? "Vérification…" : "Enregistrer et vérifier le code"}
+          </Button>
+          <p className="text-xs text-muted-foreground px-1">
+            Lors d'une génération, le mot saisi est envoyé à Google (Gemini). Aucune
+            autre donnée n'est transmise, et le code n'est jamais inclus dans vos
+            sauvegardes.
+          </p>
+        </Section>
+
         {/* Sauvegarde et export */}
         <Section title="Sauvegarde et export" icon={Database}>
           <p className="text-xs text-muted-foreground px-1">
@@ -588,7 +645,7 @@ export function SettingsView() {
         </Section>
 
         <div className="text-center text-xs text-muted-foreground py-2">
-          MyLexicon · 100 % hors ligne · Vos données ne quittent jamais votre appareil.
+          MyLexicon · Fonctionne hors ligne · Vos données restent sur votre appareil (seul le mot saisi est envoyé à l'IA lors d'une génération).
         </div>
         <div className="h-4" />
       </div>
