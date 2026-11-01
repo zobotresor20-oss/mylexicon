@@ -1,0 +1,273 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-serif);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.99 0.005 130);
+  --foreground: oklch(0.18 0.02 150);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 150);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 150);
+  /* Émeraude — couleur d'apprentissage, hors indigo/bleu */
+  --primary: oklch(0.55 0.13 160);
+  --primary-foreground: oklch(0.99 0.01 150);
+  --secondary: oklch(0.96 0.01 130);
+  --secondary-foreground: oklch(0.25 0.02 160);
+  --muted: oklch(0.96 0.005 130);
+  --muted-foreground: oklch(0.5 0.02 150);
+  --accent: oklch(0.94 0.03 150);
+  --accent-foreground: oklch(0.25 0.05 160);
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.9 0.01 130);
+  --input: oklch(0.92 0.01 130);
+  --ring: oklch(0.55 0.13 160);
+  --success: oklch(0.6 0.13 150);
+  --success-foreground: oklch(0.99 0.01 150);
+  --warning: oklch(0.75 0.15 75);
+  --warning-foreground: oklch(0.25 0.03 75);
+  --chart-1: oklch(0.55 0.13 160);
+  --chart-2: oklch(0.7 0.15 75);
+  --chart-3: oklch(0.6 0.2 27);
+  --chart-4: oklch(0.65 0.12 230);
+  --chart-5: oklch(0.7 0.15 310);
+  --sidebar: oklch(0.985 0.005 130);
+  --sidebar-foreground: oklch(0.18 0.02 150);
+  --sidebar-primary: oklch(0.55 0.13 160);
+  --sidebar-primary-foreground: oklch(0.99 0.01 150);
+  --sidebar-accent: oklch(0.94 0.03 150);
+  --sidebar-accent-foreground: oklch(0.25 0.05 160);
+  --sidebar-border: oklch(0.9 0.01 130);
+  --sidebar-ring: oklch(0.55 0.13 160);
+}
+
+.dark {
+  --background: oklch(0.16 0.015 160);
+  --foreground: oklch(0.96 0.01 150);
+  --card: oklch(0.21 0.02 160);
+  --card-foreground: oklch(0.96 0.01 150);
+  --popover: oklch(0.21 0.02 160);
+  --popover-foreground: oklch(0.96 0.01 150);
+  --primary: oklch(0.7 0.14 160);
+  --primary-foreground: oklch(0.16 0.02 160);
+  --secondary: oklch(0.27 0.02 160);
+  --secondary-foreground: oklch(0.96 0.01 150);
+  --muted: oklch(0.25 0.015 160);
+  --muted-foreground: oklch(0.7 0.02 150);
+  --accent: oklch(0.3 0.04 160);
+  --accent-foreground: oklch(0.95 0.02 150);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.7 0.14 160);
+  --success: oklch(0.68 0.14 160);
+  --success-foreground: oklch(0.16 0.02 160);
+  --warning: oklch(0.78 0.15 75);
+  --warning-foreground: oklch(0.2 0.03 75);
+  --chart-1: oklch(0.7 0.14 160);
+  --chart-2: oklch(0.75 0.15 75);
+  --chart-3: oklch(0.65 0.2 27);
+  --chart-4: oklch(0.65 0.14 230);
+  --chart-5: oklch(0.7 0.16 310);
+  --sidebar: oklch(0.21 0.02 160);
+  --sidebar-foreground: oklch(0.96 0.01 150);
+  --sidebar-primary: oklch(0.7 0.14 160);
+  --sidebar-primary-foreground: oklch(0.16 0.02 160);
+  --sidebar-accent: oklch(0.3 0.04 160);
+  --sidebar-accent-foreground: oklch(0.95 0.02 150);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.7 0.14 160);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ---- Personnalisations MyLexicon ---- */
+
+/* Échelle de police réglable (réglages). */
+html {
+  font-size: calc(16px * var(--app-font-scale, 1));
+}
+
+/* Barre de défilement discrète. */
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.7 0.02 150 / 0.4);
+  border-radius: 9999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Carte flash qui se retourne. */
+.flash-card-inner {
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.flash-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+.flash-card-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flash-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Empêche la sélection de texte sur les boutons d'onglet. */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area iOS pour la barre d'onglets. */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ---- Utilitaires MyLexicon ---- */
+
+/* Mot de vocabulaire en serif (effet dictionnaire). */
+.vocab-word {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Carte avec profondeur subtile (élévation douce). */
+.card-elevated {
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.04),
+    0 1px 3px oklch(0 0 0 / 0.06);
+}
+.dark .card-elevated {
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.3),
+    0 1px 3px oklch(0 0 0 / 0.2);
+}
+
+/* Dégradé d'en-tête subtil pour les cartes spéciales. */
+.gradient-primary-soft {
+  background-image: linear-gradient(
+    135deg,
+    oklch(0.55 0.13 160 / 0.08),
+    oklch(0.55 0.13 160 / 0.02)
+  );
+}
+.dark .gradient-primary-soft {
+  background-image: linear-gradient(
+    135deg,
+    oklch(0.7 0.14 160 / 0.12),
+    oklch(0.7 0.14 160 / 0.03)
+  );
+}
+
+/* Surlignage des correspondances de recherche. */
+mark.search-hit {
+  background: oklch(0.85 0.15 90 / 0.45);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.dark mark.search-hit {
+  background: oklch(0.7 0.15 90 / 0.35);
+}
+
+/* Animation de célébration (confettis). */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+.confetti-piece {
+  position: fixed;
+  top: 0;
+  width: 10px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 100;
+  animation: confetti-fall 2.4s ease-in forwards;
+}
+
+/* Effet de relief sur le bouton principal. */
+.btn-primary-glow {
+  box-shadow: 0 4px 14px oklch(0.55 0.13 160 / 0.35);
+}
+.dark .btn-primary-glow {
+  box-shadow: 0 4px 14px oklch(0.7 0.14 160 / 0.4);
+}
+
+/* Cellule de heatmap d'activité. */
+.heat-cell {
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.heat-cell:hover {
+  transform: scale(1.35);
+  filter: brightness(1.1);
+}
